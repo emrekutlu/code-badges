@@ -5,7 +5,6 @@ import (
     "fmt"
     "appengine"
     "appengine/urlfetch"
-//    "os"
     "log"
     "image"
     "image/draw"
@@ -32,12 +31,13 @@ func init() {
     gemsRouter := r.PathPrefix("/gems/{gem}").Subrouter()
     gemsRouter.HandleFunc("/", gems)
     gemsRouter.HandleFunc("/downloads.png", downloads)
+    gemsRouter.HandleFunc("/version.png", version)
 
     http.Handle("/", r)
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
-  fmt.Fprint(w, "ruby badges!")
+  fmt.Fprint(w, "code badges!")
 }
 
 func gems(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +82,37 @@ func downloads(w http.ResponseWriter, r *http.Request) {
     bgImage := image.NewRGBA(image.Rect(0, 0, textImage.Bounds().Dx() + countImage.Bounds().Dx(), 18))
     draw.Draw(bgImage, textImage.Bounds(), textImage, image.ZP, draw.Over)
     draw.Draw(bgImage, bgImage.Bounds(), countImage, image.Point{-textImage.Bounds().Dx(), 0}, draw.Over)
+
+    png.Encode(w, bgImage)
+}
+
+func version(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-type", "image/png")
+    c := appengine.NewContext(r)
+    client := urlfetch.Client(c)
+    vars := mux.Vars(r)
+
+    rubygems.Initialize(client)
+    gem, err := rubygems.NewGem(vars["gem"]).Get()
+
+    textImage := image.NewRGBA(image.Rect(0, 0, 47, 18))
+    addTextAndBg("version", textImage, &textBg)
+
+    var version string
+    var versionImage *image.RGBA
+    if err == nil {
+      version = gem.Version
+      versionImage = image.NewRGBA(image.Rect(0, 0, 4 + len(version) * 6, 18))
+      addTextAndBg(version, versionImage, &countBg)
+    } else {
+      version = "Gem not found!"
+      versionImage = image.NewRGBA(image.Rect(0, 0, 87, 18))
+      addTextAndBg(version, versionImage, &errorBg)
+    }
+
+    bgImage := image.NewRGBA(image.Rect(0, 0, textImage.Bounds().Dx() + versionImage.Bounds().Dx(), 18))
+    draw.Draw(bgImage, textImage.Bounds(), textImage, image.ZP, draw.Over)
+    draw.Draw(bgImage, bgImage.Bounds(), versionImage, image.Point{-textImage.Bounds().Dx(), 0}, draw.Over)
 
     png.Encode(w, bgImage)
 }
