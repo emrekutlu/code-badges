@@ -77,7 +77,7 @@ func downloads(w http.ResponseWriter, r *http.Request) {
     // Freetype
 
 // Read the font data.
-   fontBytes, err := ioutil.ReadFile("/Users/emrekutlu/www/code-badges/Signika-Regular.ttf")
+   fontBytes, err := ioutil.ReadFile("Signika-Regular.ttf")
    if err != nil {
      log.Println(err)
      return
