@@ -18,6 +18,13 @@ import (
     "code.google.com/p/freetype-go/freetype"
 )
 
+var(
+  countBg = color.RGBA{53, 187, 15, 255}
+  errorBg = color.RGBA{255, 0, 0, 255}
+  textBg  = color.RGBA{63, 63, 63, 255}
+)
+
+
 func init() {
     r := mux.NewRouter()
 
@@ -56,36 +63,40 @@ func downloads(w http.ResponseWriter, r *http.Request) {
 
     rubygems.Initialize(client)
     gem, err := rubygems.NewGem(vars["gem"]).Get()
-/*
-    file, err := os.Open("static/badge.png")
-    if err != nil {
-      log.Fatal(err)
+
+    textImage := image.NewRGBA(image.Rect(0, 0, 64, 18))
+    addTextAndBg("Downloads", textImage, &textBg)
+
+    var count string
+    var countImage *image.RGBA
+    if err == nil {
+      count = strconv.Itoa(gem.Downloads)
+      countImage = image.NewRGBA(image.Rect(0, 0, 4 + len(count) * 7, 18))
+      addTextAndBg(count, countImage, &countBg)
     } else {
-      defer file.Close()
+      count = "Gem not found!"
+      countImage = image.NewRGBA(image.Rect(0, 0, 87, 18))
+      addTextAndBg(count, countImage, &errorBg)
     }
 
-    // Decode the image.
-    m, _, err := image.Decode(file)
-   if err != nil {
-     log.Fatal(err)
-   }
-*/
-    m := image.NewRGBA(image.Rect(0, 0, 100, 20))
-    blue := color.RGBA{0, 29, 204, 170}
-    draw.Draw(m, m.Bounds(), &image.Uniform{C: blue}, image.ZP, draw.Src)
+    bgImage := image.NewRGBA(image.Rect(0, 0, textImage.Bounds().Dx() + countImage.Bounds().Dx(), 18))
+    draw.Draw(bgImage, textImage.Bounds(), textImage, image.ZP, draw.Over)
+    draw.Draw(bgImage, bgImage.Bounds(), countImage, image.Point{-64, 0}, draw.Over)
 
-    // Freetype
+    png.Encode(w, bgImage)
+}
 
-// Read the font data.
+func addTextAndBg(txt string, img *image.RGBA, bgColor *color.RGBA) {
+
+  draw.Draw(img, img.Bounds(), &image.Uniform{C: bgColor}, image.ZP, draw.Src)
+
    fontBytes, err := ioutil.ReadFile("Signika-Regular.ttf")
    if err != nil {
      log.Println(err)
-     return
    }
    font, err := freetype.ParseFont(fontBytes)
    if err != nil {
      log.Println(err)
-     return
    }
 
     var size float64
@@ -94,27 +105,14 @@ func downloads(w http.ResponseWriter, r *http.Request) {
     freetypeContext.SetDPI(72)
     freetypeContext.SetFont(font)
     freetypeContext.SetFontSize(size)
-    freetypeContext.SetClip(m.Bounds())
-    freetypeContext.SetDst(m)
+    freetypeContext.SetClip(img.Bounds())
+    freetypeContext.SetDst(img)
     freetypeContext.SetSrc(image.White)
 
-    pt := freetype.Pt(40, int(freetypeContext.PointToFix32(size)>>8))
+    pt := freetype.Pt(4, int(freetypeContext.PointToFix32(size)>>8))
 
-   for _, s := range []string{strconv.Itoa(gem.Downloads)} {
-     _, err = freetypeContext.DrawString(s, pt)
-     if err != nil {
-       log.Println(err)
-       return
-     }
-     pt.Y += freetypeContext.PointToFix32(size * 1.5)
+   _, err = freetypeContext.DrawString(txt, pt)
+   if err != nil {
+     log.Println(err)
    }
-
-
-    if err != nil {
-      fmt.Fprint(w, err)
-    } else {
-      log.Println(gem.Downloads)
-      png.Encode(w, m)
-    }
 }
-
