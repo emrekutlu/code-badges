@@ -2,27 +2,28 @@ package gemBadges
 
 import (
     "net/http"
-    "fmt"
+    "net/url"
     "appengine"
     "appengine/urlfetch"
+    "fmt"
     "log"
+    "io/ioutil"
     "image"
     "image/draw"
     "image/color"
     "image/png"
-    "io/ioutil"
     "strconv"
+    "encoding/hex"
     "github.com/emrekutlu/go-rubygems"
     "github.com/gorilla/mux"
     "code.google.com/p/freetype-go/freetype"
 )
 
 var(
-  countBg = color.RGBA{53, 187, 15, 255}
+  rightBg = color.RGBA{53, 187, 15, 255}
   errorBg = color.RGBA{255, 0, 0, 255}
-  textBg  = color.RGBA{63, 63, 63, 255}
+  leftBg  = color.RGBA{63, 63, 63, 255}
 )
-
 
 func init() {
     r := mux.NewRouter()
@@ -61,18 +62,20 @@ func downloads(w http.ResponseWriter, r *http.Request) {
     client := urlfetch.Client(c)
     vars := mux.Vars(r)
 
+    checkParams(r.URL.Query())
+
     rubygems.Initialize(client)
     gem, err := rubygems.NewGem(vars["gem"]).Get()
 
     textImage := image.NewRGBA(image.Rect(0, 0, 64, 18))
-    addTextAndBg("downloads", textImage, &textBg)
+    addTextAndBg("downloads", textImage, &leftBg)
 
     var count string
     var countImage *image.RGBA
     if err == nil {
       count = strconv.Itoa(gem.Downloads)
       countImage = image.NewRGBA(image.Rect(0, 0, 4 + len(count) * 7, 18))
-      addTextAndBg(count, countImage, &countBg)
+      addTextAndBg(count, countImage, &rightBg)
     } else {
       count = "Gem not found!"
       countImage = image.NewRGBA(image.Rect(0, 0, 87, 18))
@@ -92,18 +95,20 @@ func version(w http.ResponseWriter, r *http.Request) {
     client := urlfetch.Client(c)
     vars := mux.Vars(r)
 
+    checkParams(r.URL.Query())
+
     rubygems.Initialize(client)
     gem, err := rubygems.NewGem(vars["gem"]).Get()
 
     textImage := image.NewRGBA(image.Rect(0, 0, 47, 18))
-    addTextAndBg("version", textImage, &textBg)
+    addTextAndBg("version", textImage, &leftBg)
 
     var version string
     var versionImage *image.RGBA
     if err == nil {
       version = gem.Version
       versionImage = image.NewRGBA(image.Rect(0, 0, 4 + len(version) * 6, 18))
-      addTextAndBg(version, versionImage, &countBg)
+      addTextAndBg(version, versionImage, &rightBg)
     } else {
       version = "Gem not found!"
       versionImage = image.NewRGBA(image.Rect(0, 0, 87, 18))
@@ -146,4 +151,31 @@ func addTextAndBg(txt string, img *image.RGBA, bgColor *color.RGBA) {
    if err != nil {
      log.Println(err)
    }
+}
+
+func hexToRGBA(hexParam string) (color.RGBA, error){
+  rgbaArray, err := hex.DecodeString(hexParam)
+  if err == nil {
+    return color.RGBA{rgbaArray[0], rgbaArray[1], rgbaArray[2], 255} , err
+  } else {
+    return color.RGBA{0, 0, 0, 255}, err
+  }
+}
+
+func checkParams(params url.Values) {
+  leftBgParam := params.Get("left_bg")
+  if len(leftBgParam) > 0 {
+    newLeftBg, err := hexToRGBA(leftBgParam)
+    if err == nil {
+      leftBg = newLeftBg
+    }
+  }
+
+  rightBgParam := params.Get("right_bg")
+  if len(rightBgParam) > 0 {
+    newRightBg, err := hexToRGBA(rightBgParam)
+    if err == nil {
+      rightBg = newRightBg
+    }
+  }
 }
