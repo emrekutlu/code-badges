@@ -65,7 +65,7 @@ func downloads(w http.ResponseWriter, r *http.Request) {
     gem, err := rubygems.NewGem(vars["gem"]).Get()
 
     textImage := image.NewRGBA(image.Rect(0, 0, 64, 18))
-    addTextAndBg("Downloads", textImage, &textBg)
+    addTextAndBg("downloads", textImage, &textBg)
 
     var count string
     var countImage *image.RGBA
@@ -81,7 +81,7 @@ func downloads(w http.ResponseWriter, r *http.Request) {
 
     bgImage := image.NewRGBA(image.Rect(0, 0, textImage.Bounds().Dx() + countImage.Bounds().Dx(), 18))
     draw.Draw(bgImage, textImage.Bounds(), textImage, image.ZP, draw.Over)
-    draw.Draw(bgImage, bgImage.Bounds(), countImage, image.Point{-64, 0}, draw.Over)
+    draw.Draw(bgImage, bgImage.Bounds(), countImage, image.Point{-textImage.Bounds().Dx(), 0}, draw.Over)
 
     png.Encode(w, bgImage)
 }
