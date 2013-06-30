@@ -20,9 +20,7 @@ import (
 )
 
 var(
-  rightBg = color.RGBA{53, 187, 15, 255}
   errorBg = color.RGBA{255, 0, 0, 255}
-  leftBg  = color.RGBA{63, 63, 63, 255}
 )
 
 func init() {
@@ -62,7 +60,7 @@ func downloads(w http.ResponseWriter, r *http.Request) {
     client := urlfetch.Client(c)
     vars := mux.Vars(r)
 
-    checkParams(r.URL.Query())
+    leftBg, rightBg := checkParams(r.URL.Query())
 
     rubygems.Initialize(client)
     gem, err := rubygems.NewGem(vars["gem"]).Get()
@@ -95,7 +93,7 @@ func version(w http.ResponseWriter, r *http.Request) {
     client := urlfetch.Client(c)
     vars := mux.Vars(r)
 
-    checkParams(r.URL.Query())
+    leftBg, rightBg := checkParams(r.URL.Query())
 
     rubygems.Initialize(client)
     gem, err := rubygems.NewGem(vars["gem"]).Get()
@@ -162,7 +160,10 @@ func hexToRGBA(hexParam string) (color.RGBA, error){
   }
 }
 
-func checkParams(params url.Values) {
+func checkParams(params url.Values) (color.RGBA, color.RGBA){
+  rightBg := color.RGBA{53, 187, 15, 255}
+  leftBg  := color.RGBA{63, 63, 63, 255}
+
   leftBgParam := params.Get("left_bg")
   if len(leftBgParam) > 0 {
     newLeftBg, err := hexToRGBA(leftBgParam)
@@ -178,4 +179,6 @@ func checkParams(params url.Values) {
       rightBg = newRightBg
     }
   }
+
+  return leftBg, rightBg
 }
